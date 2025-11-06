@@ -26,21 +26,29 @@ cargo --version
 brew install python3
 ```
 
-Verify installation:
-```bash
-python3 --version
-pip3 --version
-```
-
 ### 4. Install Python Build Dependencies
 ```bash
 pip3 install --upgrade pip
 pip3 install setuptools setuptools-rust wheel maturin
 ```
 
+
+
 ## Building the Extension
 
-### Option 1: Using setup.py (Recommended for Development)
+First clone the repository:
+   ```bash
+   git clone https://github.com/djeanql/ashmaize-py
+   cd ashmaize-py
+   ```
+
+Install the ce-ashmaize submodule:
+
+  ```bash
+  git submodule update --init --recursive
+   ```
+
+### Option 1: Using setup.py
 
 1. Create a virtual environment (recommended):
 ```bash
@@ -63,7 +71,7 @@ Or for a production build:
 python setup.py install
 ```
 
-### Option 2: Using pip (Simpler)
+### Option 2: Using pip
 
 1. Create and activate virtual environment:
 ```bash
@@ -94,6 +102,15 @@ Or just build wheels:
 ```bash
 maturin build --release
 ```
+
+### Midnight Miner
+
+If you are using [Midnight Miner](https://github.com/djeanql/MidnightMiner), you need to:
+- Exit the venv with `deactivate`
+- Copy `ashmaize.cpython-313-darwin.so` to MidnightMiner's directory
+- Rename to `ashmaize_py_mac.so`
+- Change the import to `import ashmaize_py_mac`
+
 
 ## Testing the Installation
 
