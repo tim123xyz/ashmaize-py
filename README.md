@@ -27,7 +27,7 @@ ashmaize-py provides Python bindings to the ashmaize library, a memory-hard hash
 ### Prerequisites
 
 - Rust 1.70+ (install from [rustup.rs](https://rustup.rs))
-- Python 3.8+
+- Python 3.12 (IMPORTANT: Must use 3.12)
 - pip and setuptools
 
 ### Build Steps
@@ -43,7 +43,19 @@ ashmaize-py provides Python bindings to the ashmaize library, a memory-hard hash
   git submodule update --init --recursive
    ```
 
-3. Build and install:
+3. Create a virtual environment:
+
+   ```bash
+   python3.12 -m venv venv && source venv/bin/activate
+   ```
+
+4. Install setup tools:
+
+   ```bash
+   python3.12 -m pip install setuptools setuptools_rust wheel
+   ```
+
+5. Build and install:
    ```bash
    pip install -e .
    ```
