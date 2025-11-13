@@ -8,8 +8,9 @@ name = "ashmaize_py"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = { version = "0.20", features = ["extension-module"] }
+pyo3 = { version = "0.27.1", features = ["extension-module"] }
 hex = "0.4"
+rayon = "1.11.0"
 
 [dependencies.ashmaize]
 path = "ce-ashmaize"
