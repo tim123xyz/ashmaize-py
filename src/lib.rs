@@ -3,6 +3,7 @@ use std::sync::Arc;
 use ashmaize::{Rom, RomGenerationType};
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
+use rand::{thread_rng, RngCore};
 use rayon::prelude::*;
 
 #[pyclass]
@@ -12,6 +13,27 @@ struct PyRom {
 
 #[pymethods]
 impl PyRom {
+    fn mine_batch(
+        &self,
+        preimage_static: &str,
+        difficulty: u32,
+        batch_size: u32,
+    ) -> PyResult<String> {
+        if let Some(found) = (0..batch_size).into_par_iter().find_map_any(|_| {
+            let salt = build_random_salt(preimage_static);
+            let hash = ashmaize::hash(salt.as_bytes(), &self.inner, 8, 256);
+            if meets_difficulty(&hash, difficulty) {
+                Some(salt)
+            } else {
+                None
+            }
+        }) {
+            return Ok(found);
+        }
+
+        Ok(String::new())
+    }
+
     /// Hash a single preimage with default parameters (8 loops, 256 instructions)
     fn hash(&self, preimage: &str) -> PyResult<String> {
         self.hash_with_params(preimage, 8, 256)
@@ -30,7 +52,12 @@ impl PyRom {
     }
 
     /// Hash batch with custom parameters
-    fn hash_batch_with_params(&self, preimages: Vec<String>, nb_loops: u32, nb_instrs: u32) -> PyResult<Vec<String>> {
+    fn hash_batch_with_params(
+        &self,
+        preimages: Vec<String>,
+        nb_loops: u32,
+        nb_instrs: u32,
+    ) -> PyResult<Vec<String>> {
         let results: Vec<String> = preimages
             .par_iter()
             .map(|preimage| {
@@ -42,6 +69,20 @@ impl PyRom {
 
         Ok(results)
     }
+}
+
+fn build_random_salt(preimage_static: &str) -> String {
+    let mut nonce_bytes = [0u8; 8];
+    thread_rng().fill_bytes(&mut nonce_bytes);
+
+    let mut salt = hex::encode(nonce_bytes);
+    salt.push_str(preimage_static);
+    salt
+}
+
+fn meets_difficulty(hash: &[u8; 64], difficulty_mask: u32) -> bool {
+    let hash_prefix = u32::from_be_bytes([hash[0], hash[1], hash[2], hash[3]]);
+    (hash_prefix | difficulty_mask) == difficulty_mask
 }
 
 /// Build a ROM from a key string (FullRandom generation)
