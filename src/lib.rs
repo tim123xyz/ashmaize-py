@@ -3,7 +3,7 @@ use std::sync::Arc;
 use ashmaize::{Rom, RomGenerationType};
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
-use rand::{thread_rng, RngCore};
+use rand::RngCore;
 use rayon::prelude::*;
 
 #[pyclass]
@@ -19,9 +19,11 @@ impl PyRom {
         difficulty: u32,
         batch_size: u32,
     ) -> PyResult<String> {
-        if let Some(found) = (0..batch_size).into_par_iter().find_map_any(|_| {
-            let salt = build_random_salt(preimage_static);
-            let hash = ashmaize::hash(salt.as_bytes(), &self.inner, 8, 256);
+        let rom = Arc::clone(&self.inner);
+        let nonce_s = rand::rng().next_u64();
+        if let Some(found) = (0..batch_size as u64).into_par_iter().find_map_any(|i| {
+            let salt = build_random_salt(nonce_s + i, preimage_static);
+            let hash = ashmaize::hash(salt.as_bytes(), &rom, 8, 256);
             if meets_difficulty(&hash, difficulty) {
                 Some(salt)
             } else {
@@ -59,7 +61,7 @@ impl PyRom {
         nb_instrs: u32,
     ) -> PyResult<Vec<String>> {
         let results: Vec<String> = preimages
-            .par_iter()
+            .into_par_iter()
             .map(|preimage| {
                 let salt = preimage.as_bytes();
                 let hash = ashmaize::hash(salt, &self.inner, nb_loops, nb_instrs);
@@ -71,17 +73,12 @@ impl PyRom {
     }
 }
 
-fn build_random_salt(preimage_static: &str) -> String {
-    let mut nonce_bytes = [0u8; 8];
-    thread_rng().fill_bytes(&mut nonce_bytes);
-
-    let mut salt = hex::encode(nonce_bytes);
-    salt.push_str(preimage_static);
-    salt
+fn build_random_salt(nonce: u64, preimage_static: &str) -> String {
+    hex::encode(nonce.to_ne_bytes()) + preimage_static
 }
 
 fn meets_difficulty(hash: &[u8; 64], difficulty_mask: u32) -> bool {
-    let hash_prefix = u32::from_be_bytes([hash[0], hash[1], hash[2], hash[3]]);
+    let hash_prefix = u32::from_be_bytes([hash[0],hash[1],hash[2],hash[3]]);
     (hash_prefix | difficulty_mask) == difficulty_mask
 }
 
